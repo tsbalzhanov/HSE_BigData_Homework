@@ -1,0 +1,5 @@
+logs:
+$HADOOP_PREFIX/logs/userlogs
+
+config files:
+/usr/local/hadoop/etc/hadoop/

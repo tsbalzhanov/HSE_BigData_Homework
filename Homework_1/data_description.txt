@@ -1,0 +1,16 @@
+antiNucleus INT
+eventFile UINT
+eventNumber INT
+eventTime DOUBLE
+histFile UINT
+multiplicity INT
+NaboveLb INT
+NbelowLb INT
+NLb  INT
+primaryTracks INT
+prodTime DOUBLE
+Pt  FLOAT
+runNumber INT
+vertexX  FLOAT
+vertexY  FLOAT
+vertexZ  FLOAT

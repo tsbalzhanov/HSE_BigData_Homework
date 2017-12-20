@@ -1,0 +1,60 @@
+###################
+### IN OUTER OS ###
+###################
+# start docker
+docker run -it sequenceiq/hadoop-docker:2.7.1 /etc/bootstrap.sh -bash
+
+# copy file
+CONTAINERID=0e52e1990980
+docker cp mr $CONTAINERID:root/mr
+docker cp data $CONTAINERID:root/data
+
+#################
+### IN DOCKER ###
+#################
+CONTAINERID=0e52e1990980
+cd root
+mkdir results
+gunzip data/star2002-full.csv.gz
+$HADOOP_PREFIX/bin/hdfs dfs -mkdir /Homework_1
+$HADOOP_PREFIX/bin/hdfs dfs -put data/star2002-* /Homework_1
+
+# launch hadoop streaming
+# percentile
+$HADOOP_PREFIX/bin/hadoop jar $HADOOP_PREFIX/share/hadoop/tools/lib/hadoop-streaming-2.7.1.jar \
+    -files mr/percentile_mapper.py,mr/percentile_reducer.py \
+    -input /Homework_1/star2002-full.csv \
+    -output /Homework_1/output-percentile \
+    -mapper percentile_mapper.py \
+    -reducer percentile_reducer.py
+
+# list results
+$HADOOP_PREFIX/bin/hdfs dfs -ls /Homework_1/output-percentile/
+# copy results
+$HADOOP_PREFIX/bin/hdfs dfs -cp /Homework_1/output-percentile/part-00000 /Homework_1/percentiles.csv 
+
+# average pt
+$HADOOP_PREFIX/bin/hadoop jar $HADOOP_PREFIX/share/hadoop/tools/lib/hadoop-streaming-2.7.1.jar \
+    -files mr/average_pt_mapper.py,mr/average_pt_reducer.py,hdfs://$CONTAINERID:9000/Homework_1/percentiles.csv \
+    -input /Homework_1/star2002-full.csv \
+    -output /Homework_1/output-average_pt \
+    -mapper average_pt_mapper.py \
+    -reducer average_pt_reducer.py
+
+# unique eventfiles
+$HADOOP_PREFIX/bin/hadoop jar $HADOOP_PREFIX/share/hadoop/tools/lib/hadoop-streaming-2.7.1.jar \
+    -files mr/unique_eventfiles_mapper.py,mr/unique_eventfiles_reducer.py,hdfs://$CONTAINERID:9000/Homework_1/percentiles.csv \
+    -input /Homework_1/star2002-full.csv \
+    -output /Homework_1/output-unique_eventfiles \
+    -mapper unique_eventfiles_mapper.py \
+    -reducer unique_eventfiles_reducer.py
+
+# get results from hdfs
+$HADOOP_PREFIX/bin/hdfs dfs -get /Homework_1/output-percentile/part-00000 results/percentiles
+$HADOOP_PREFIX/bin/hdfs dfs -get /Homework_1/output-unique_eventfiles/part-00000 results/unique_eventfiles
+$HADOOP_PREFIX/bin/hdfs dfs -get /Homework_1/output-average_pt/part-00000 results/output-average_pt
+
+###################
+### IN OUTER OS ###
+###################
+docker cp $CONTAINERID:root/results results
